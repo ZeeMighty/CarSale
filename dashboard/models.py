@@ -3,7 +3,6 @@ from custom_user.models import CustomUser
 from django.db.models import CheckConstraint, Q, F
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
-from .choices_lists import *
 from django.core.exceptions import ValidationError
 
 class Car(models.Model):
@@ -12,8 +11,8 @@ class Car(models.Model):
     description = models.TextField(blank=True, help_text="Описание автомобиля")
 
     # Производитель и модель
-    brand = models.CharField(max_length=100, help_text="Марка", choices=ChoiceList.BRAND_CHOICE)
-    model = models.CharField(max_length=100, help_text="Модель")
+    brand = models.ForeignKey('Brand', on_delete=models.CASCADE)
+    model = models.ForeignKey('CarModel', on_delete=models.CASCADE, blank=True)
     generation = models.CharField(max_length=100, blank=True, help_text="Поколение (если нужно)")
     year = models.PositiveSmallIntegerField(help_text="Год выпуска")
 
@@ -92,9 +91,9 @@ class Car(models.Model):
 
     def clean(self):
         # Проверяем, что марка есть в базе моделей
-        if self.brand in car_models:
+        if self.brand in Brand.objects.all():
             # Проверяем, что модель входит в допустимый список для этой марки
-            if self.model not in car_models[self.brand]:
+            if self.model not in CarModel.objects.filter(brand=self.brand):
                 raise ValidationError(
                     f"Модель {self.model} не подходит для марки {self.brand}!"
                 )
@@ -105,7 +104,6 @@ class Car(models.Model):
         # Делаю обязательный вызов метода clean при сохранении объекта
         self.full_clean()
         super().save(*args, **kwargs)
-
 
     def __str__(self):
         return f"{self.brand} {self.model} {self.year}"
@@ -128,3 +126,25 @@ class CarImage(models.Model):
 def delete_image_file(sender, instance, **kwargs):
     if instance.image:
         instance.image.delete(False)  # False — не сохранять модель
+
+class Brand(models.Model):
+    name = models.CharField(max_length=100, unique=True, verbose_name="Марка")
+
+    class Meta:
+        verbose_name = "Марка автомобиля"
+        verbose_name_plural = "Марки автомобилей"
+
+    def __str__(self):
+        return self.name
+
+class CarModel(models.Model):
+    brand = models.ForeignKey('Brand', on_delete=models.CASCADE, related_name='models', verbose_name="Марка")
+    name = models.CharField(max_length=100, verbose_name="Модель")
+
+    class Meta:
+        unique_together = ('brand', 'name')
+        verbose_name = "Модель автомобиля"
+        verbose_name_plural = "Модели автомобилей"
+
+    def __str__(self):
+        return f"{self.brand} {self.name}"
