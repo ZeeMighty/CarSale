@@ -1,7 +1,9 @@
 from django.contrib import admin
-from .models import *
+
+from .models import Brand, Car, CarArchive, CarImage, CarModel
 
 admin.site.register(Car)
 admin.site.register(CarImage)
 admin.site.register(Brand)
 admin.site.register(CarModel)
+admin.site.register(CarArchive)
