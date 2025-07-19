@@ -104,15 +104,11 @@ class Car(models.Model):
         )
 
     def clean(self) -> None:
-        # Проверяем, что марка есть в базе моделей
-        if self.brand in Brand.objects.all():
-            # Проверяем, что модель входит в допустимый список для этой марки
-            if self.model_id not in CarModel.objects.filter(brand=self.brand).only("id"):
-                raise ValidationError(
-                    f"Модель {self.model} не подходит для марки {self.brand}!"
-                )
-        else:
-            raise ValidationError(f"Марка {self.brand} не поддерживается!")
+        # Проверяем, что модель входит в допустимый список для этой марки
+        if self.model not in CarModel.objects.filter(brand=self.brand):
+            raise ValidationError(
+                f"Модель {self.model} не подходит для марки {self.brand}!"
+            )
 
     def save(self, *args:Any, **kwargs:Any) -> None:
         # Делаю обязательный вызов метода clean при сохранении объекта
@@ -120,7 +116,7 @@ class Car(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:
-        return f"{self.brand} {self.model} {self.year}"
+        return f"{self.model} {self.year}"
 
 class CarImage(models.Model):
     car = models.ForeignKey(Car, related_name="images", on_delete=models.CASCADE,
